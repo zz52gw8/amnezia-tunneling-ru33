@@ -1,14 +1,9 @@
 name: Build Amnezia Domain List
 
 on:
-  schedule:
-    - cron: '0 0 * * *'
+  # В этом форке нужен только glinet-ip.txt, а его glinet.yml собирает прямо
+  # из ru.txt. Ежедневная сборка Amnezia-списков отключена, запуск — вручную.
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/build.yml'
-      - 'scripts/**'
 
 permissions:
   contents: write
