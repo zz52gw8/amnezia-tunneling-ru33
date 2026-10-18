@@ -13,13 +13,14 @@
 
 ## 📥 Скачать
 
-В репозитории три списка — выбирайте под свою задачу:
+В репозитории три списка для Amnezia и IP-список для роутеров GL.iNet — выбирайте под свою задачу:
 
 | Файл | Что внутри | Кому подходит |
 |---|---|---|
 | [**amnezia.json**](https://github.com/lib4u/amnezia-tunneling-ru/releases/download/latest/amnezia.json) | 2000+ доменов российских сервисов + локальные зоны (localhost, lan, home.arpa) | Точечный обход: только известные RU-сервисы идут мимо VPN |
 | [**amnezia-ip-lite.json**](https://github.com/lib4u/amnezia-tunneling-ru/releases/download/latest/amnezia-ip-lite.json) | ~650 IPv4-подсетей — только сети, где реально живут сервисы из наших категорий | **Android и iOS.** Компактный и точный: работает там, где полный IP-список не поднимается |
 | [**amnezia-ip.json**](https://github.com/lib4u/amnezia-tunneling-ru/releases/download/latest/amnezia-ip.json) | 12 800+ IPv4-подсетей (CIDR) — **весь российский сегмент интернета** | Десктоп, максимальное покрытие: любой RU-адрес идёт напрямую |
+| [**glinet-ip.txt**](https://raw.githubusercontent.com/zz52gw8/amnezia-tunneling-ru33/main/glinet-ip.txt) | Те же подсети, что в `amnezia-ip.json`, обычным текстом — по одной на строку. Обновляется не чаще раза в 4 дня | Роутеры **GL.iNet** (прошивка 4.7+): VPN-политика по ссылке на онлайн-файл |
 
 **Постоянные ссылки** (файлы под ними всегда свежие, можно использовать в автоматизации):
 
@@ -90,6 +91,20 @@ https://github.com/lib4u/amnezia-tunneling-ru/releases/download/latest/amnezia-i
 3. Сгенерируйте `.vpn`-файл или QR-код — **настройки туннелирования сохранятся внутри профиля**.
 4. Отправьте файл/QR пользователям: после импорта у них всё работает из коробки.
 
+## 📡 Как подключить на роутере GL.iNet
+
+Роутеры GL.iNet с прошивкой 4.7+ умеют брать правила VPN-политики из онлайн-файла ([документация](https://docs.gl-inet.com/router/en/4/tutorials/how_to_configure_domain_and_ip_filtering_rules_for_glinet_routers_via_an_online_text_file/)). Для них есть `glinet-ip.txt` — те же 12 800+ подсетей, что в `amnezia-ip.json`, по одной на строку (одиночные адреса — без `/32`):
+
+```
+https://raw.githubusercontent.com/zz52gw8/amnezia-tunneling-ru33/main/glinet-ip.txt
+```
+
+1. В веб-интерфейсе роутера откройте **VPN** → **VPN Dashboard** и переключитесь в **Policy Mode**.
+2. В правиле туннеля в поле **To** выберите **Exclude Specified Domain / IP List** (при **Via** = **Use VPN**) — в туннель пойдёт всё, кроме российских подсетей.
+3. Переключите **Input Mode** с **Manual** на **Subscription URL**, вставьте ссылку выше и примените.
+
+Подписку роутер перекачивает сам раз в сутки, а файл меняется не чаще раза в 4 дня — так что и правила на роутере меняются не чаще. Названия пунктов приведены по [документации прошивки 4.8](https://docs.gl-inet.com/router/en/4/interface_guide/vpn_dashboard_v4.8/), в других версиях они могут отличаться.
+
 ## ⚙️ Как устроено обновление
 
 Никакой ручной работы — всё делает GitHub Actions:
@@ -100,6 +115,7 @@ https://github.com/lib4u/amnezia-tunneling-ru/releases/download/latest/amnezia-i
 4. Параллельно скрипт [`scripts/extract_ip.py`](scripts/extract_ip.py) скачивает полный список российских подсетей из [v2fly/geoip](https://github.com/v2fly/geoip) (`ru.txt`), отбрасывает IPv6 (Amnezia поддерживает только IPv4) и собирает `amnezia-ip.json`. Приватные диапазоны (`private.txt`) сюда намеренно **не** включаются: в split tunneling список означает «гнать напрямую», и `127.0.0.0/8`, `10.0.0.0/8`, `192.168.0.0/16`, `100.64.0.0/10` увели бы в туннель loopback, шлюз локальной сети и CGNAT-адрес клиента, полностью сломав подключение.
 5. Скрипт [`scripts/derive_ip.py`](scripts/derive_ip.py) собирает компактный `amnezia-ip-lite.json`: резолвит домены из категорий и заменяет каждый адрес на содержащий его префикс из `ru.txt`. Получается ~650 подсетей вместо 12 840 — и точнее, потому что внутри только сети реальных сервисов.
 6. Обновлённые файлы коммитятся в репозиторий и публикуются в релиз `latest`.
+7. Отдельный workflow [`glinet.yml`](.github/workflows/glinet.yml) после успешной ежедневной сборки превращает `amnezia-ip.json` в `glinet-ip.txt` скриптом [`scripts/extract_glinet.py`](scripts/extract_glinet.py) — но только если с прошлого изменения файла прошло не меньше 4 дней (ручной запуск обновляет сразу). Если список сократился больше чем на четверть, это считается сбоем источника, и файл не перезаписывается.
 
 Всё прозрачно: источник данных открыт, скрипт конвертации — 40 строк Python в этом репозитории.
 
