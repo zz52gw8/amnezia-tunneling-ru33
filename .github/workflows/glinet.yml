@@ -1,0 +1,60 @@
+name: Build GL.iNet IP List
+
+on:
+  # Запускается после каждой ежедневной сборки, но сам список меняется
+  # не чаще раза в 4 дня — см. шаг «Build glinet-ip.txt».
+  workflow_run:
+    workflows: ['Build Amnezia Domain List']
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}
+
+jobs:
+  build:
+    # После упавшей сборки amnezia-ip.json в main не менялся — ждём следующую
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout root repo
+        uses: actions/checkout@v4
+        with:
+          # свежий main с только что закоммиченным amnezia-ip.json
+          ref: main
+
+      - name: Build glinet-ip.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Интервал отсчитывается от последнего коммита, изменившего файл, а не
+          # по фиксированным датам: если сборка в нужный день упала, список
+          # догонит на следующий. Сравниваются календарные дни — ежедневная
+          # сборка финиширует то в 02:30, то в 05:00 UTC, и по часам интервал
+          # растягивался бы до 5 дней. Ручной запуск обновляет сразу.
+          if [ "$GITHUB_EVENT_NAME" != workflow_dispatch ]; then
+            last=$(gh api "repos/$GITHUB_REPOSITORY/commits?sha=main&path=glinet-ip.txt&per_page=1" \
+              --jq '.[0].commit.committer.date // empty')
+            if [ -n "$last" ]; then
+              days=$(( ($(date -u +%s) - $(date -u -d "${last%T*}" +%s)) / 86400 ))
+              if [ "$days" -lt 4 ]; then
+                echo "glinet-ip.txt менялся ${last%T*}, $days дн. назад — обновление не раньше чем через 4 дня"
+                exit 0
+              fi
+            fi
+          fi
+          python3 scripts/extract_glinet.py amnezia-ip.json glinet-ip.txt
+
+      - name: Commit updated list
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add glinet-ip.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: update GL.iNet IP list ($(date -u +%Y-%m-%d))"
+            git push
+          fi
