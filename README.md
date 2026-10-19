@@ -1,9 +1,5 @@
 # 🇷🇺 Amnezia Tunneling RU — российские сайты в обход VPN
 
-> 🔥 **Ищете надёжный VPN, который точно работает в России?**
-> Рекомендуем проверенный сервис [**wpn.me**](https://wpn.me/?campaign=github) — полная поддержка **Amnezia 3.1 и 2.0**, а также современных протоколов **VLESS**, **Hysteria2**, **TrustTunnel**, устойчивых к блокировкам. Работает даже в условиях «белых списков».
-> 👉 [**Попробовать wpn.me**](https://wpn.me/?campaign=github)
-
 [![Build Amnezia Domain List](https://github.com/lib4u/amnezia-tunneling-ru/actions/workflows/build.yml/badge.svg)](https://github.com/lib4u/amnezia-tunneling-ru/actions/workflows/build.yml)
 [![Latest Release](https://img.shields.io/github/v/release/lib4u/amnezia-tunneling-ru?label=release)](https://github.com/lib4u/amnezia-tunneling-ru/releases/latest)
 
